@@ -108,6 +108,10 @@ class AssembledBlock(nn.Module):
         aggregate_weight3 = aggregate_weight3.view(bs * self.out_channels, self.out_channels // self.groups,
                                                    self.kernel_size, self.kernel_size)
         
+        aggregate_weight1 = aggregate_weight1.to(self.device)
+        aggregate_weight2 = aggregate_weight2.to(self.device)
+        aggregate_weight3 = aggregate_weight3.to(self.device)
+        
         out = F.conv2d(x, weight=aggregate_weight1, bias=None, stride=self.stride, padding=self.padding, 
                        dilation=self.dilation, groups=self.groups * bs)   # bs * out_channels, in_channels // groups, h, w
         out = out.view(1, self.out_channels * bs, out.shape[2], out.shape[3])
@@ -119,7 +123,6 @@ class AssembledBlock(nn.Module):
         out = out.view(bs, self.out_channels, out.shape[2], out.shape[3])
         
         return out
-        
     
     
 def test_control_module():

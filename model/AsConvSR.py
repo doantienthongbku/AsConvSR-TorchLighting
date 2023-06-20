@@ -2,17 +2,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from Assembled_conv import AssembledBlock
+from model.Assembled_conv import AssembledBlock
 
 # Implementation of AsConvSR 
 class AsConvSR(nn.Module):
-    def __init__(self, scale_factor: int=2):
+    def __init__(self, scale_factor: int=2, device=torch.device('cpu')):
         super(AsConvSR, self).__init__()
         self.scale_factor = scale_factor
         
         self.pixelUnShuffle = nn.PixelUnshuffle(2)
         self.conv1 = nn.Conv2d(12, 48, kernel_size=3, stride=1, padding=1)
-        self.assemble = AssembledBlock(48, 48, kernel_size=3, stride=1, padding=1)
+        self.assemble = AssembledBlock(48, 48, kernel_size=3, stride=1, padding=1, device=device)
         self.conv2 = nn.Conv2d(48, 48, kernel_size=3, stride=1, padding=1)
         self.pixelShuffle = nn.PixelShuffle(2)
 

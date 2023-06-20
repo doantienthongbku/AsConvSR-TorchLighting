@@ -6,17 +6,17 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from .AsConvSR import AsConvSR
-from .losses import ContentLoss
+from .losses import ContentLoss, PSNR
 
 
 class LitAsConvSR(pl.LightningModule):
-    def __init__(self, learning_rate=1e-3, scale_factor=2):
+    def __init__(self, learning_rate=1e-3, scale_factor=2, device=torch.device('cpu')):
         super().__init__()
         self.learning_rate = learning_rate
-        self.model = AsConvSR(scale_factor=scale_factor)
+        self.model = AsConvSR(scale_factor=scale_factor, device=device)
         
         self.l1_loss_fn = nn.L1Loss()
-        self.content_loss_fn = ContentLoss()
+        self.psnr_fn = PSNR()
         
     def forward(self, x):
         return self.model(x)
@@ -24,29 +24,35 @@ class LitAsConvSR(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         image_lr, image_hr = batch['lr'], batch['hr']
         image_sr = self.forward(image_lr)
-        l1_loss = self.l1_loss_fn(image_sr, image_hr)
-        content_loss = self.content_loss_fn(image_sr, image_hr)
-        loss = l1_loss + 0.001 * content_loss
+        loss = self.l1_loss_fn(image_sr, image_hr)
+        psnr = self.psnr_fn(image_sr, image_hr)
         
-        return {'loss': loss, 'l1_loss': l1_loss, 'content_loss': content_loss}
+        self.log_dict({'train_loss': loss, 'train_psnr': psnr},
+                      on_step=False, on_epoch=True, prog_bar=True)
+        
+        return loss
     
     def validation_step(self, batch, batch_idx):
         image_lr, image_hr = batch['lr'], batch['hr']
         image_sr = self.forward(image_lr)
-        l1_loss = self.l1_loss_fn(image_sr, image_hr)
-        content_loss = self.content_loss_fn(image_sr, image_hr)
-        loss = l1_loss + 0.001 * content_loss
+        loss = self.l1_loss_fn(image_sr, image_hr)
+        psnr = self.psnr_fn(image_sr, image_hr)
         
-        return {'val_loss': loss, 'val_l1_loss': l1_loss, 'val_content_loss': content_loss}
+        self.log_dict({'val_loss': loss, 'val_psnr': psnr},
+                      on_step=False, on_epoch=True, prog_bar=True)
+        
+        return loss
     
     def test_step(self, batch, batch_idx):
         image_lr, image_hr = batch['lr'], batch['hr']
         image_sr = self.forward(image_lr)
-        l1_loss = self.l1_loss_fn(image_sr, image_hr)
-        content_loss = self.content_loss_fn(image_sr, image_hr)
-        loss = l1_loss + 0.001 * content_loss
+        loss = self.l1_loss_fn(image_sr, image_hr)
+        psnr = self.psnr_fn(image_sr, image_hr)
         
-        return {'test_loss': loss, 'test_l1_loss': l1_loss, 'test_content_loss': content_loss}
+        self.log_dict({'test_loss': loss, 'test_psnr': psnr},
+                      on_step=False, on_epoch=True, prog_bar=True)
+        
+        return loss
     
     def predict_step(self, batch, batch_idx):
         image_lr, image_hr = batch['lr'], batch['hr']
@@ -54,4 +60,7 @@ class LitAsConvSR(pl.LightningModule):
         return {'image_lr': image_lr, 'image_sr': image_sr, 'image_hr': image_hr}
     
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate, betas=(0.9, 0.9999))
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.trainer.max_epochs)
+        return [optimizer], [scheduler]
+    

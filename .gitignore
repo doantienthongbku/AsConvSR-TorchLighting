@@ -4,4 +4,4 @@ __pycache__/
 *$py.class
 runs/
 env/
-lightning_logs/
+tb_logs/
