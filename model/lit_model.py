@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+import torchvision
 
 from .AsConvSR import AsConvSR
 from .losses import ContentLoss, PSNR
@@ -31,6 +32,11 @@ class LitAsConvSR(pl.LightningModule):
         self.log_dict({'train_loss': loss, 'train_psnr': psnr},
                       on_step=False, on_epoch=True, prog_bar=True)
         
+        if batch_idx % 1000 == 0:
+            # show single images lr, sr, hr in tensorboard
+            grid = torchvision.utils.make_grid(torch.cat((image_sr[:1], image_hr[:1]), dim=0))
+            self.logger.experiment.add_image('train_images', grid, self.global_step)
+        
         return loss
     
     def validation_step(self, batch, batch_idx):
@@ -41,6 +47,11 @@ class LitAsConvSR(pl.LightningModule):
         
         self.log_dict({'val_loss': loss, 'val_psnr': psnr},
                       on_step=False, on_epoch=True, prog_bar=True)
+        
+        if batch_idx % 1000 == 0:
+            # show single images lr, sr, hr in tensorboard
+            grid = torchvision.utils.make_grid(torch.cat((image_sr[:1], image_hr[:1]), dim=0))
+            self.logger.experiment.add_image('val_images', grid, self.global_step)
         
         return loss
     
