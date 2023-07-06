@@ -23,6 +23,7 @@ class LitAsConvSR(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         image_lr, image_hr = batch['lr'], batch['hr']
+        image_lr = image_lr.to(self.device)
         image_sr = self.forward(image_lr)
         loss = self.l1_loss_fn(image_sr, image_hr)
         psnr = self.psnr_fn(image_sr, image_hr)

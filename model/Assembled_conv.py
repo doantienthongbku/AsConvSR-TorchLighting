@@ -63,10 +63,10 @@ class AssembledBlock(nn.Module):
         self.weight2 = nn.Parameter(torch.randn(E, out_channels, out_channels // groups, kernel_size, kernel_size), requires_grad=True)
         self.weight3 = nn.Parameter(torch.randn(E, out_channels, out_channels // groups, kernel_size, kernel_size), requires_grad=True)
         
-        if bias:
-            self.bias1 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True)
-            self.bias2 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True)
-            self.bias3 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True)
+        # if bias:
+        #     self.bias1 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True)
+        #     self.bias2 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True)
+        #     self.bias3 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True)
     
     def forward(self, x):
         bs, in_channels, h, w = x.shape
