@@ -1,0 +1,11 @@
+kornia==0.6.12
+numpy==1.24.3
+opencv_python==4.7.0.72
+Pillow==9.5.0
+Pillow==10.0.0
+pytorch_lightning==2.0.3
+torch==2.0.1
+torch_summary==1.4.5
+torchmetrics==0.11.4
+torchvision==0.15.2
+tqdm==4.65.0

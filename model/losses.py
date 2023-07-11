@@ -30,18 +30,35 @@ class ContentLoss(nn.Module):
         return loss
 
 
-class PSNR(nn.Module):
-    """
-    Peak Signal/Noise Ratio.
-    """
-    def __init__(self, max_val=1.):
-        super(PSNR, self).__init__()
-        self.max_val = max_val
+# class PSNR(nn.Module):
+#     """
+#     Peak Signal/Noise Ratio.
+#     """
+#     def __init__(self, max_val=1.):
+#         super(PSNR, self).__init__()
+#         self.max_val = max_val
 
-    def forward(self, predictions, targets):
-        if predictions.shape[1] == 3:
-            predictions = kc.rgb_to_grayscale(predictions)
-            targets = kc.rgb_to_grayscale(targets)
-        mse = F.mse_loss(predictions, targets)
-        psnr = 10 * torch.log10(self.max_val ** 2 / mse)
-        return psnr
+#     def forward(self, predictions, targets):
+#         if predictions.shape[1] == 3:
+#             predictions = kc.rgb_to_grayscale(predictions)
+#             targets = kc.rgb_to_grayscale(targets)
+#         mse = F.mse_loss(predictions, targets)
+#         psnr = 10 * torch.log10(self.max_val ** 2 / mse)
+#         return psnr
+
+
+# class SSIM(nn.Module):
+#     """
+#     Structural Similarity Index.
+#     """
+#     def __init__(self, window_size=11, max_val=1.):
+#         super(SSIM, self).__init__()
+#         self.window_size = window_size
+#         self.max_val = max_val
+        
+#     def forward(self, predictions, targets):
+#         if predictions.shape[1] == 3:
+#             predictions = kc.rgb_to_grayscale(predictions)
+#             targets = kc.rgb_to_grayscale(targets)
+#         ssim = 1 - kc.ssim(predictions, targets, self.window_size, reduction='mean')
+#         return ssim

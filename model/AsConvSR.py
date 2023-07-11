@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from Assembled_conv import AssembledBlock
+from .Assembled_conv import AssembledBlock
 
 # Implementation of AsConvSR 
 class AsConvSR(nn.Module):

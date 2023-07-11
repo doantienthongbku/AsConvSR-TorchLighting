@@ -10,8 +10,15 @@ from torchvision.transforms import functional as TF
 
 
 class SRDataset(Dataset):
-    def __init__(self, images_dir: str = "./datasets", crop_size: int = 96, upscale_factor: int = 2, 
-                 mode: str = "train", image_format: str = "png", preupsample: bool = False):
+    def __init__(
+        self,
+        images_dir: str = "./datasets",
+        crop_size: int = 96,
+        upscale_factor: int = 2, 
+        mode: str = "train", 
+        image_format: str = "png", 
+        preupsample: bool = False
+    ):
         super(SRDataset, self).__init__()
         self.image_path_list = glob.glob(images_dir + "/*." + image_format)
         self.crop_size = crop_size
