@@ -62,11 +62,13 @@ class AssembledBlock(nn.Module):
         self.weight1 = nn.Parameter(torch.randn(E, out_channels, in_channels // groups, kernel_size, kernel_size), requires_grad=True)
         self.weight2 = nn.Parameter(torch.randn(E, out_channels, out_channels // groups, kernel_size, kernel_size), requires_grad=True)
         self.weight3 = nn.Parameter(torch.randn(E, out_channels, out_channels // groups, kernel_size, kernel_size), requires_grad=True)
+        self.weight1, self.weight2, self.weight3 = self.weight1.to(self.device), self.weight2.to(self.device), self.weight3.to(self.device)
         
-        # if bias:
-        #     self.bias1 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True)
-        #     self.bias2 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True)
-        #     self.bias3 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True)
+        if self.bias:
+            self.bias1 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True) # E, out_channels
+            self.bias2 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True) # E, out_channels
+            self.bias3 = nn.Parameter(torch.randn(E, out_channels), requires_grad=True) # E, out_channels
+            self.bias1, self.bias2, self.bias3 = self.bias1.to(self.device), self.bias2.to(self.device), self.bias3.to(self.device)
     
     def forward(self, x):
         bs, in_channels, h, w = x.shape
@@ -82,6 +84,10 @@ class AssembledBlock(nn.Module):
                                         self.kernel_size).to(self.device) # bs, out_channels, in_channels // groups, k, k
         aggregate_weight3 = torch.zeros(bs, self.out_channels, self.out_channels // self.groups, self.kernel_size,
                                         self.kernel_size).to(self.device) # bs, out_channels, in_channels // groups, k, k
+        if self.bias:
+            aggregate_bias1 = torch.zeros(bs, self.out_channels).to(self.device) # bs, out_channels
+            aggregate_bias2 = torch.zeros(bs, self.out_channels).to(self.device) # bs, out_channels
+            aggregate_bias3 = torch.zeros(bs, self.out_channels).to(self.device) # bs, out_channels
         
         for i in range(self.out_channels):
             sub_coeff = coeff[:, i, :] # bs, E
@@ -101,30 +107,36 @@ class AssembledBlock(nn.Module):
             aggregate_weight3[:, i, :, :, :] = sub_aggregate_weight3.view(bs, self.out_channels // self.groups,
                                                                           self.kernel_size, self.kernel_size)
             
+            if self.bias:
+                aggregate_bias1[:, i] = torch.mm(sub_coeff, self.bias1[:, i].view(self.E, 1)).view(bs)  # bs
+                aggregate_bias2[:, i] = torch.mm(sub_coeff, self.bias2[:, i].view(self.E, 1)).view(bs)  # bs
+                aggregate_bias3[:, i] = torch.mm(sub_coeff, self.bias3[:, i].view(self.E, 1)).view(bs)  # bs
+            
         aggregate_weight1 = aggregate_weight1.view(bs * self.out_channels, self.in_channels // self.groups, 
-                                                   self.kernel_size, self.kernel_size)
+                                                   self.kernel_size, self.kernel_size)  # 1, bs * out_channels, in_channels // groups, h, w
         aggregate_weight2 = aggregate_weight2.view(bs * self.out_channels, self.out_channels // self.groups,
-                                                   self.kernel_size, self.kernel_size)
+                                                   self.kernel_size, self.kernel_size)  # bs * out_channels, in_channels // groups, h, w
         aggregate_weight3 = aggregate_weight3.view(bs * self.out_channels, self.out_channels // self.groups,
-                                                   self.kernel_size, self.kernel_size)
+                                                   self.kernel_size, self.kernel_size)  # bs * out_channels, in_channels // groups, h, w
+        if self.bias:
+            aggregate_bias1 = aggregate_bias1.view(bs * self.out_channels) # bs * out_channels
+            aggregate_bias2 = aggregate_bias2.view(bs * self.out_channels) # bs * out_channels
+            aggregate_bias3 = aggregate_bias3.view(bs * self.out_channels) # bs * out_channels
+        else:
+            aggregate_bias1, aggregate_bias2, aggregate_bias3 = None, None, None
+            
         
-        aggregate_weight1 = aggregate_weight1.to(self.device)
-        aggregate_weight2 = aggregate_weight2.to(self.device)
-        aggregate_weight3 = aggregate_weight3.to(self.device)
-        
-        out = F.conv2d(x, weight=aggregate_weight1, bias=None, stride=self.stride, padding=self.padding, 
+        out = F.conv2d(x, weight=aggregate_weight1, bias=aggregate_bias1, stride=self.stride, padding=self.padding, 
                        dilation=self.dilation, groups=self.groups * bs)   # bs * out_channels, in_channels // groups, h, w
-        out = out.view(1, self.out_channels * bs, out.shape[2], out.shape[3])
-        out = F.conv2d(out, weight=aggregate_weight2, bias=None, stride=self.stride, padding=self.padding,
+        out = F.conv2d(out, weight=aggregate_weight2, bias=aggregate_bias2, stride=self.stride, padding=self.padding,
                        dilation=self.dilation, groups=self.groups * bs)  # bs * out_channels, in_channels // groups, h, w
-        out = out.view(1, self.out_channels * bs, out.shape[2], out.shape[3])
-        out = F.conv2d(out, weight=aggregate_weight3, bias=None, stride=self.stride, padding=self.padding,
+        out = F.conv2d(out, weight=aggregate_weight3, bias=aggregate_bias3, stride=self.stride, padding=self.padding,
                        dilation=self.dilation, groups=self.groups * bs)  # bs * out_channels, in_channels // groups, h, w
         out = out.view(bs, self.out_channels, out.shape[2], out.shape[3])
         
         return out
     
-    
+
 def test_control_module():
     x = torch.randn(1, 32, 64, 64)
     net = ControlModule(32, 64)
